@@ -1,3 +1,7 @@
+import config.DatabaseConnection;
+import dao.GenericDAO;
+import model.Categoria;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,7 +33,7 @@ public class GestorCategoria {
                 while (rs.next()) {
                     int id = rs.getInt("id");
                     String nombre = rs.getString("nombre");
-                    System.out.println("ID: " + id + ", Categoria: " + nombre);
+                    System.out.println("ID: " + id + ", model.Categoria: " + nombre);
                 }
             } catch (Exception e) {
                 System.out.println("Error al ejecutar la query");
@@ -70,7 +74,7 @@ public class GestorCategoria {
                 statement.setInt(3, id);
                 int filasAfectadas = statement.executeUpdate();
                 if (filasAfectadas > 0) {
-                    System.out.println("✅ Categoria actualizado con éxito.");
+                    System.out.println("✅ model.Categoria actualizado con éxito.");
                 } else {
                     System.out.println("❌ No se encontró la categoria con ID: " + id);
                 }
@@ -89,7 +93,7 @@ public class GestorCategoria {
         statement.setInt(1, id);
         int filasAfectadas = statement.executeUpdate();
         if (filasAfectadas > 0 ) {
-            System.out.println("Categoria con id: " +  id + " eliminada satisfactorimente");
+            System.out.println("model.Categoria con id: " +  id + " eliminada satisfactorimente");
         } else {
             System.out.println("No se encontro la categoria con el id seleccionado");
         }
