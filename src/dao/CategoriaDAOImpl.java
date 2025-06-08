@@ -72,10 +72,10 @@ public class CategoriaDAOImpl implements GenericDAO<Categoria> {
             int filasAfectadas = statement.executeUpdate();
             if (filasAfectadas > 0) {
                 return true;
-            } else {}
-                return false;
             }
-        }
+            }
+        return false;
+    }
 
 
     @Override

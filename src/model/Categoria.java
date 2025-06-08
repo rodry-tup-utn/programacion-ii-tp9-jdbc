@@ -1,9 +1,13 @@
 package model;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class Categoria {
     private int id;
     private String nombre;
     private String descripcion;
+    private Set<Producto> productos = new HashSet<>();
 
     public Categoria(int id, String nombre, String descripcion) {
         this.id = id;
