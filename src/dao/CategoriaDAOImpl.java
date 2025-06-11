@@ -13,10 +13,13 @@ import java.util.List;
 
 public class CategoriaDAOImpl implements GenericDAO<Categoria> {
     @Override
-    public void crear(Categoria categoria) throws SQLException {
+    public void crear(Categoria categoria, Connection connection) throws SQLException {
+        if (categoria.getDescripcion() == "") {
+            categoria.setDescripcion("Sin descripcion");
+        }
+
         String sql = "INSERT INTO categoria(nombre, descripcion) VALUES(?, ?)";
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, categoria.getNombre());
             statement.setString(2, categoria.getDescripcion());
             statement.execute();
@@ -24,11 +27,10 @@ public class CategoriaDAOImpl implements GenericDAO<Categoria> {
     }
 
     @Override
-    public List<Categoria> listar() throws SQLException {
+    public List<Categoria> listar(Connection connection) throws SQLException {
         List<Categoria> categorias = new ArrayList<>();
         String sqlQuery = "SELECT id, nombre FROM categoria";
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
+        try (PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 int id = rs.getInt("id");
@@ -42,10 +44,9 @@ public class CategoriaDAOImpl implements GenericDAO<Categoria> {
     }
 
     @Override
-    public Categoria leer(int id) throws SQLException {
+    public Categoria leer(int id, Connection connection) throws SQLException {
         String sqlQuery = "SELECT * FROM categoria WHERE id=?";
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
+        try (PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
             statement.setInt(1, id);
             ResultSet rs = statement.executeQuery();
 
@@ -53,20 +54,17 @@ public class CategoriaDAOImpl implements GenericDAO<Categoria> {
                 String nombre = rs.getString("nombre");
                 String descripcion = rs.getString("descripcion");
                 Categoria categoria = new Categoria(id, nombre, descripcion);
-                System.out.println("*** " + nombre + " ***\n " + descripcion);
                 return categoria;
             } else {
-                System.out.println("No se encontro ninguna categoria");
-                return null;
+                throw new IllegalArgumentException("No se econtró la categoría espeficada");
             }
         }
     }
 
     @Override
-    public boolean eliminar(int id) throws SQLException {
+    public boolean eliminar(int id, Connection connection) throws SQLException {
         String sqlDelete = "DELETE FROM categoria WHERE id=?";
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlDelete)) {
+        try (PreparedStatement statement = connection.prepareStatement(sqlDelete)) {
 
             statement.setInt(1, id);
             int filasAfectadas = statement.executeUpdate();
@@ -79,10 +77,9 @@ public class CategoriaDAOImpl implements GenericDAO<Categoria> {
 
 
     @Override
-    public boolean actualizar(Categoria categoria) throws SQLException {
+    public boolean actualizar(Categoria categoria, Connection connection) throws SQLException {
         String sqlUpdate = "UPDATE categoria SET nombre=?, descripcion=? WHERE id=?";
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlUpdate)) {
+        try (PreparedStatement statement = connection.prepareStatement(sqlUpdate)) {
 
             statement.setString(1, categoria.getNombre());
             statement.setString(2, categoria.getDescripcion());
@@ -101,13 +98,26 @@ public class CategoriaDAOImpl implements GenericDAO<Categoria> {
         String sqlQuery = "SELECT COUNT(nombre) FROM categoria WHERE nombre=?";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
-
+            statement.setString(1, nombre);
             ResultSet rs = statement.executeQuery();
             if (rs.next()) {
                 return rs.getInt(1) > 0;
             }
             return false;
         }
+    }
+
+    public boolean existeCategoria(int idCategoria) throws SQLException {
+        String sqlQuery = "SELECT id FROM categoria WHERE id=?";
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
+            statement.setInt(1, idCategoria);
+            ResultSet rs = statement.executeQuery();
+            if (rs.next()) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

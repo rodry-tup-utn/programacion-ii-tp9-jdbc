@@ -1,9 +1,11 @@
 package service;
 
+import config.DatabaseConnection;
 import dao.CategoriaDAOImpl;
 import dao.GenericDAO;
 import model.Categoria;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 
 public class CategoriaServiceImpl implements GenericService<Categoria> {
@@ -22,14 +24,11 @@ public class CategoriaServiceImpl implements GenericService<Categoria> {
         if (categoria.getNombre().trim().isEmpty() || categoria.getNombre() == null) {
             throw new IllegalArgumentException("Falta el nombre de la categoria");
         }
-        if (categoria.getDescripcion().trim().isEmpty() || categoria.getDescripcion() == null) {
-            throw new IllegalArgumentException("Falta la descripcion de la categoria");
-        }
+
         if (categoriaDAO.existeNombre((categoria.getNombre()))) {
             throw new IllegalArgumentException("El nombre de la categoria ya existe");
         }
-        categoriaDAO.crear(categoria);
+        Connection connection = DatabaseConnection.getConnection();
+        categoriaDAO.crear(categoria, connection);
     }
-
-
 }

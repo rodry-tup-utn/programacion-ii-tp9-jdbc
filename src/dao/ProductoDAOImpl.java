@@ -14,24 +14,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProductoDAOImpl implements GenericDAO<Producto> {
-    private CategoriaDAOImpl categoriaDAO;
+    private final CategoriaDAOImpl categoriaDAO;
 
     public ProductoDAOImpl(CategoriaDAOImpl categoriaDAO) {
         this.categoriaDAO = categoriaDAO;
+
     }
 
-    private Categoria crearCategoria(int id) throws SQLException  {
-        if (existeCategoria(id)) {
-        return categoriaDAO.leer(id);
-        } else {
-            throw new SQLException("Categoria id" + id + " no encontrada" );
-        }
-    }
-
-    public void crear(Producto producto) throws SQLException {
-        String sqlInsert = "INSERT INTO producto(nombre, descripcion, precio, cantidad, categoria) VALUES (?, ?, ?, ?, ?)";
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlInsert)) {
+    public void crear(Producto producto, Connection connection) throws SQLException {
+        String sqlInsert = "INSERT INTO producto(nombre, descripcion, precio, cantidad, id_categoria) VALUES (?, ?, ?, ?, ?)";
+        try (PreparedStatement statement = connection.prepareStatement(sqlInsert)) {
             statement.setString(1, producto.getNombre());
             statement.setString(2, producto.getDescripcion());
             statement.setDouble(3, producto.getPrecio());
@@ -42,10 +34,9 @@ public class ProductoDAOImpl implements GenericDAO<Producto> {
 
     }
 
-    public Producto leer(int id) throws SQLException{
-        String sqlQuery = "SELECT * FROM producto WHERE id=?";
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
+    public Producto leer(int id, Connection connection) throws SQLException{
+        String sqlQuery = "SELECT * FROM producto WHERE id_producto=?";
+        try (PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
             statement.setInt(1, id);
             ResultSet rs = statement.executeQuery();
             if (rs.next()) {
@@ -55,7 +46,7 @@ public class ProductoDAOImpl implements GenericDAO<Producto> {
                 int cantidad = rs.getInt("cantidad");
                 int idCategoria = rs.getInt("id_categoria");
 
-                Categoria categoria = crearCategoria(idCategoria);
+                Categoria categoria = categoriaDAO.leer(idCategoria, connection);
                 Producto producto = new Producto(id, nombre, descripcion, precio, cantidad, categoria);
                 return producto;
 
@@ -64,25 +55,15 @@ public class ProductoDAOImpl implements GenericDAO<Producto> {
         throw new SQLException("No se encontró el producto con el id: " + id);
     }
 
-    public boolean actualizar(Producto producto) throws SQLException {
-
-        if (producto == null) {
-            System.out.println("El producto no puede ser nulo");
-            return false;
-        }
-        if (!existeCategoria(producto.getIdCategoria()) || producto.getIdCategoria() == 0 || producto.getCategoria() == null){
-            System.out.println("Error relacionado con la categoria enviada");
-            return false;
-        }
-
-        String sqlUpdate = "UPDATE producto SET nombre=?, descripcion=?, precio=?, cantidad=?, categoria=?";
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlUpdate)) {
+    public boolean actualizar(Producto producto, Connection connection) throws SQLException {
+        String sqlUpdate = "UPDATE producto SET nombre=?, descripcion=?, precio=?, cantidad=?, id_categoria=? WHERE id_producto=?";
+        try (PreparedStatement statement = connection.prepareStatement(sqlUpdate)) {
             statement.setString(1, producto.getNombre());
             statement.setString(2, producto.getDescripcion());
             statement.setDouble(3, producto.getPrecio());
             statement.setInt(4, producto.getCantidad());
             statement.setInt(5, producto.getIdCategoria());
+            statement.setInt(6, producto.getId());
 
             int filasAfectadas = statement.executeUpdate();
             if (filasAfectadas > 0) {
@@ -94,10 +75,9 @@ public class ProductoDAOImpl implements GenericDAO<Producto> {
         return false;
     }
 
-    public boolean eliminar(int id) throws SQLException{
+    public boolean eliminar(int id, Connection connection) throws SQLException{
         String sqlDelete = "DELETE FROM proucto WHERE id=?";
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlDelete)) {
+        try (PreparedStatement statement = connection.prepareStatement(sqlDelete)) {
 
             statement.setInt(1, id);
             int filasAfectadas = statement.executeUpdate();
@@ -108,11 +88,10 @@ public class ProductoDAOImpl implements GenericDAO<Producto> {
         return false;
     }
 
-    public List<Producto> listar() throws SQLException{
+    public List<Producto> listar(Connection connection) throws SQLException{
         List<Producto> productos = new ArrayList<>();
         String sqlQuery = "SELECT * FROM producto";
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
+        try (PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 int id = rs.getInt("id");
@@ -122,7 +101,7 @@ public class ProductoDAOImpl implements GenericDAO<Producto> {
                 int cantidad = rs.getInt("cantidad");
                 int idCategoria = rs.getInt("id_categoria");
 
-                Categoria categoria = crearCategoria(idCategoria);
+                Categoria categoria = categoriaDAO.leer(idCategoria, connection);
                 Producto producto = new Producto(id, nombre, descripcion, precio, cantidad, categoria);
                 productos.add(producto);
             }
@@ -130,48 +109,57 @@ public class ProductoDAOImpl implements GenericDAO<Producto> {
         }
     }
 
-    public List<Producto> listarPorCategoria(int id) throws SQLException {
+    public List<Producto> listarPorCategoria(int idCategoriaFiltro, Connection connection) throws SQLException {
         List<Producto> productos = new ArrayList<>();
-        boolean categoriaCreada = false;
-        Categoria categoria = null;
-        String sqlQuery = "SELECT * FROM producto WHERE id_categoria=?";
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
-            statement.setInt(1, id);
+
+        if (!categoriaDAO.existeCategoria(idCategoriaFiltro)) {
+            return productos; // Retorna una lista vacía si la categoría no existe
+        }
+
+        Categoria categoriaAsociada = categoriaDAO.leer(idCategoriaFiltro, connection);
+
+        String sqlQuery = "SELECT id_producto, nombre, descripcion, precio, cantidad, id_categoria FROM producto WHERE id_categoria=?";
+        try (PreparedStatement statement = connection.prepareStatement(sqlQuery)) { // Usa la conexión pasada
+            statement.setInt(1, idCategoriaFiltro);
             ResultSet rs = statement.executeQuery();
+
             while (rs.next()) {
-                int id_producto = rs.getInt("id");
+                int id_producto = rs.getInt("id_producto"); // Asegúrate de que el nombre de la columna sea correcto en tu DB
                 String nombre = rs.getString("nombre");
                 String descripcion = rs.getString("descripcion");
                 double precio = rs.getDouble("precio");
                 int cantidad = rs.getInt("cantidad");
-                int idCategoria = rs.getInt("id_categoria");
-
-                if (!categoriaCreada) {
-                    categoria = crearCategoria(idCategoria);
-                    categoriaCreada = true;
-                }
-
-                if (categoria == null) {
-                    System.out.println("No se pudo cargar la categoria");
-                }
-                Producto producto = new Producto(id_producto, nombre, descripcion, precio, cantidad, categoria);
+                Producto producto = new Producto(id_producto, nombre, descripcion, precio, cantidad, categoriaAsociada);
                 productos.add(producto);
             }
             return productos;
         }
     }
 
-    public boolean existeCategoria(int idCategoria) throws SQLException {
-        String sqlQuery = "SELECT id FROM categoria WHERE id=?";
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
-            statement.setInt(1, idCategoria);
+    public void mostrarProductoConCategoria(int id, Connection connection) throws SQLException{
+        String sqlQuery = "SELECT\n" +
+                "    p.nombre AS nombre_producto,\n" +
+                "    p.precio,\n" +
+                "    p.cantidad,\n" +
+                "    c.nombre AS nombre_categoria\n" + // <-- Removed the trailing comma here
+                " FROM\n" +
+                "    producto p\n" +
+                "INNER JOIN\n" +
+                "    categoria c ON p.id_categoria = c.id \n" +
+                "WHERE p.id_producto=?";
+        try (PreparedStatement statement = connection.prepareStatement(sqlQuery)) {
+            statement.setInt(1, id);
             ResultSet rs = statement.executeQuery();
-            if (rs.next()) {
-                return true;
+
+            while (rs.next()) {
+                String nombre = rs.getString("nombre_producto");
+                double precio = rs.getDouble("precio");
+                int cantidad = rs.getInt("cantidad");
+                String nombreCategoria = rs.getString("nombre_categoria");
+                System.out.println(nombre + " - $" + precio + " - " + cantidad  +" - " + nombreCategoria);
             }
         }
-        return false;
     }
 }
+
+

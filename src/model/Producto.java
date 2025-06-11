@@ -68,4 +68,5 @@ public class Producto {
     public int getIdCategoria() {
         return categoria.getId();
     }
+
 }

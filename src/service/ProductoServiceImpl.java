@@ -1,15 +1,22 @@
 package service;
 
+import config.DatabaseConnection;
+import dao.CategoriaDAOImpl;
 import dao.ProductoDAOImpl;
 import model.Producto;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class ProductoServiceImpl implements GenericService<Producto>{
     private final ProductoDAOImpl productoDAO;
+    private final CategoriaDAOImpl categoriaDAO;
 
-    public ProductoServiceImpl(ProductoDAOImpl productoDAO) {
+    public ProductoServiceImpl(ProductoDAOImpl productoDAO, CategoriaDAOImpl categoriaDAO) {
         this.productoDAO = productoDAO;
+        this.categoriaDAO = categoriaDAO;
     }
 
     @Override
@@ -26,6 +33,12 @@ public class ProductoServiceImpl implements GenericService<Producto>{
         if (producto.getPrecio() <= 0) {
             throw new IllegalArgumentException("El precio no puede ser menor a 1");
         }
-        productoDAO.crear(producto);
+
+        if (!categoriaDAO.existeCategoria(producto.getIdCategoria())) {
+            throw new SQLException("No existe el id de categoria referenciado");
+        }
+        Connection connection = DatabaseConnection.getConnection();
+        productoDAO.crear(producto, connection);
     }
+
 }
