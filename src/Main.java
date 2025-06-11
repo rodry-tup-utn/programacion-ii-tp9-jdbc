@@ -80,10 +80,11 @@ public class Main {
 
         //Kata 4
         try (Connection connection = DatabaseConnection.getConnection()) {
+
             ProductoDAOImpl productoDAO = new ProductoDAOImpl(categoriaDAO);
             ProductoServiceImpl productoService = new ProductoServiceImpl(productoDAO, categoriaDAO);
             PedidoDAO pedidoDAO = new PedidoDAO();
-            ItemPedidoDAO itemPedidoDAO = new ItemPedidoDAO();
+            ItemPedidoDAO itemPedidoDAO = new ItemPedidoDAO(productoDAO);
             PedidoServiceImpl pedidoService = new PedidoServiceImpl(productoDAO, pedidoDAO,  itemPedidoDAO);
 
             Producto coca = productoDAO.leer(3, connection);
@@ -99,8 +100,15 @@ public class Main {
             double subtotal = nuevoPedido.calcularTotalPedido();
             nuevoPedido.setSubtotal(subtotal);
 
+
+
             try {
-                pedidoService.crear(nuevoPedido);
+                //pedidoService.crear(nuevoPedido);
+                try {
+                    pedidoDAO.mostrarDetallePedido(1, connection);
+                } catch (SQLException e) {
+                    System.out.println("Error al mostrar el pedido: " + e.getMessage());
+                }
             } catch (Exception e) {
                 System.out.println("Error al guardar el pedido en la base de datos: " + e.getMessage());
             }

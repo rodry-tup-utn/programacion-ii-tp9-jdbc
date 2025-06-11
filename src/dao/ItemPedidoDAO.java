@@ -10,6 +10,12 @@ import java.sql.SQLException;
 import java.util.List;
 
 public class ItemPedidoDAO implements GenericDAO<ItemPedido>{
+    private final ProductoDAOImpl productoDAO;
+
+    public ItemPedidoDAO(ProductoDAOImpl productoDAO) {
+        this.productoDAO = productoDAO;
+    }
+
     @Override
     public void crear(ItemPedido itemPedido, Connection connection) throws SQLException {
         String sqlInsert = "INSERT INTO items_pedido(id_pedido, id_producto, cantidad, subtotal) VALUES(?, ?, ?, ?)";
@@ -24,6 +30,8 @@ public class ItemPedidoDAO implements GenericDAO<ItemPedido>{
 
     @Override
     public List<ItemPedido> listar(Connection connection) throws SQLException {
+
+
         return List.of();
     }
 
